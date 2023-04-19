@@ -48,7 +48,10 @@
 #include <linux/moduleparam.h>
 #include <linux/uaccess.h>
 #include <linux/sched/isolation.h>
+#include <linux/debug-snapshot.h>
 #include <linux/nmi.h>
+#include <linux/sec_debug.h>
+#include <soc/samsung/exynos-debug.h>
 
 #include "workqueue_internal.h"
 
@@ -910,6 +913,26 @@ struct task_struct *wq_worker_sleeping(struct task_struct *task)
 }
 
 /**
+ * wq_worker_last_func - retrieve worker's last work function
+ *
+ * Determine the last function a worker executed. This is called from
+ * the scheduler to get a worker's last known identity.
+ *
+ * CONTEXT:
+ * spin_lock_irq(rq->lock)
+ *
+ * Return:
+ * The last work function %current executed as a worker, NULL if it
+ * hasn't executed any work yet.
+ */
+work_func_t wq_worker_last_func(struct task_struct *task)
+{
+	struct worker *worker = kthread_data(task);
+
+	return worker->last_func;
+}
+
+/**
  * worker_set_flags - set worker flags and adjust nr_running accordingly
  * @worker: self
  * @flags: flags to set
@@ -1510,7 +1533,9 @@ static void __queue_delayed_work(int cpu, struct workqueue_struct *wq,
 	struct work_struct *work = &dwork->work;
 
 	WARN_ON_ONCE(!wq);
+#ifndef CONFIG_CFI
 	WARN_ON_ONCE(timer->function != delayed_work_timer_fn);
+#endif
 	WARN_ON_ONCE(timer_pending(timer));
 	WARN_ON_ONCE(!list_empty(&work->entry));
 
@@ -2152,7 +2177,9 @@ __acquires(&pool->lock)
 	 */
 	lockdep_invariant_state(true);
 	trace_workqueue_execute_start(work);
+	dbg_snapshot_work(worker, worker->task, worker->current_func, DSS_FLAG_IN);
 	worker->current_func(work);
+	dbg_snapshot_work(worker, worker->task, worker->current_func, DSS_FLAG_OUT);
 	/*
 	 * While we must be careful to not use "work" after this, the trace
 	 * point will only record its address.
@@ -2185,6 +2212,9 @@ __acquires(&pool->lock)
 	/* clear cpu intensive status */
 	if (unlikely(cpu_intensive))
 		worker_clr_flags(worker, WORKER_CPU_INTENSIVE);
+
+	/* tag the worker for identification in schedule() */
+	worker->last_func = worker->current_func;
 
 	/* we're done with it, release */
 	hash_del(&worker->hentry);
@@ -2925,7 +2955,9 @@ static bool __flush_work(struct work_struct *work, bool from_cancel)
 	}
 
 	if (start_flush_work(work, &barr, from_cancel)) {
+		secdbg_dtsk_set_data(DTYPE_WORK, work);
 		wait_for_completion(&barr.done);
+		secdbg_dtsk_clear_data();
 		destroy_work_on_stack(&barr.work);
 		return true;
 	} else {
@@ -5585,17 +5617,27 @@ static void wq_watchdog_timer_fn(struct timer_list *unused)
 		/* did we stall? */
 		if (time_after(jiffies, ts + thresh)) {
 			lockup_detected = true;
-			pr_emerg("BUG: workqueue lockup - pool");
+			pr_auto(ASL9, "BUG: workqueue lockup - pool");
 			pr_cont_pool_info(pool);
 			pr_cont(" stuck for %us!\n",
 				jiffies_to_msecs(jiffies - pool_ts) / 1000);
+#ifdef CONFIG_SEC_DEBUG_WQ_LOCKUP_INFO
+			if (pool->cpu >= 0) {
+				secdbg_show_sched_info(pool->cpu, 10);
+				secdbg_show_busy_task(pool->cpu, jiffies_to_msecs(jiffies - pool_ts) / 1000, 5);
+			}
+#endif
 		}
 	}
 
 	rcu_read_unlock();
 
-	if (lockup_detected)
+	if (lockup_detected) {
 		show_workqueue_state();
+#ifdef CONFIG_SEC_DEBUG_WORKQUEUE_LOCKUP_PANIC
+		BUG();
+#endif
+	}
 
 	wq_watchdog_reset_touched();
 	mod_timer(&wq_watchdog_timer, jiffies + thresh);

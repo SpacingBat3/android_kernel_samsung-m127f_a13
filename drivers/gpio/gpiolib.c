@@ -1909,7 +1909,11 @@ static int gpiochip_add_irqchip(struct gpio_chip *gpiochip,
 		type = IRQ_TYPE_NONE;
 	}
 
-	gpiochip->to_irq = gpiochip_to_irq;
+#ifdef CONFIG_IRQ_DOMAIN_HIERARCHY
+	if (!gpiochip->to_irq)
+#endif
+		gpiochip->to_irq = gpiochip_to_irq;
+
 	gpiochip->irq.default_type = type;
 	gpiochip->irq.lock_key = lock_key;
 	gpiochip->irq.request_key = request_key;
@@ -1919,9 +1923,16 @@ static int gpiochip_add_irqchip(struct gpio_chip *gpiochip,
 	else
 		ops = &gpiochip_domain_ops;
 
-	gpiochip->irq.domain = irq_domain_add_simple(np, gpiochip->ngpio,
-						     gpiochip->irq.first,
-						     ops, gpiochip);
+#ifdef CONFIG_IRQ_DOMAIN_HIERARCHY
+	if (gpiochip->irq.parent_domain)
+		gpiochip->irq.domain = irq_domain_add_hierarchy(gpiochip->irq.parent_domain,
+								0, gpiochip->ngpio,
+								np, ops, gpiochip);
+	else
+#endif
+		gpiochip->irq.domain = irq_domain_add_simple(np, gpiochip->ngpio,
+							     gpiochip->irq.first,
+							     ops, gpiochip);
 	if (!gpiochip->irq.domain)
 		return -EINVAL;
 
@@ -3295,6 +3306,16 @@ int gpiod_set_consumer_name(struct gpio_desc *desc, const char *name)
 	return 0;
 }
 EXPORT_SYMBOL_GPL(gpiod_set_consumer_name);
+
+#ifdef CONFIG_EXYNOS_MODEM_IF
+int gpiod_get_consumer_name(struct gpio_desc *desc, char **name)
+{
+	VALIDATE_DESC(desc);
+	*name = (char *)desc->label;
+	return 0;
+}
+EXPORT_SYMBOL_GPL(gpiod_get_consumer_name);
+#endif
 
 /**
  * gpiod_to_irq() - return the IRQ corresponding to a GPIO

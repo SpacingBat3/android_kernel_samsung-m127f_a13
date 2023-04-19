@@ -325,6 +325,7 @@ struct scsi_host_template {
 #define SCSI_ADAPTER_RESET	1
 #define SCSI_FIRMWARE_RESET	2
 
+	void (* tw_ctrl)(struct scsi_device *, int);
 
 	/*
 	 * Name of proc directory
@@ -484,6 +485,9 @@ struct scsi_host_template {
 	 */
 	unsigned int cmd_size;
 	struct scsi_host_cmd_pool *cmd_pool;
+
+	/* Delay for runtime autosuspend */
+	int rpm_autosuspend_delay;
 };
 
 /*
@@ -686,6 +690,7 @@ struct Scsi_Host {
 	
 
 	enum scsi_host_state shost_state;
+	bool wlun_clr_uac;
 
 	/* ldm bits */
 	struct device		shost_gendev, shost_dev;
