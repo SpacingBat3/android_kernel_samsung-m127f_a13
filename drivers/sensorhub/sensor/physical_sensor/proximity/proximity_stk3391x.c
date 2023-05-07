@@ -27,27 +27,32 @@
 #include "../../../utility/shub_file_manager.h"
 #include "../../../others/shub_panel.h"
 
-#define STK3X6X_NAME   "STK33910"
-#define STK3X6X_VENDOR "Sitronix"
+#define STK33910_NAME "STK33910"
+#define STK33915_NAME "STK33915"
+#define STK_VENDOR "Sitronix"
 
-void init_proximity_stk33910_variable(struct proximity_data *data)
+int init_proximity_stk3391x(void)
 {
+	struct proximity_data *data = get_sensor(SENSOR_TYPE_PROXIMITY)->data;
+
 	data->cal_data_len = sizeof(u16);
 	data->setting_mode = 1;
+
+	return 0;
 }
 
-void parse_dt_proximity_stk33910(struct device *dev)
+void parse_dt_proximity_stk3391x(struct device *dev)
 {
 	struct device_node *np = dev->of_node;
 	struct proximity_data *data = get_sensor(SENSOR_TYPE_PROXIMITY)->data;
 
-	if (of_property_read_u16_array(np, "prox-stk33910-thresh", data->prox_threshold, PROX_THRESH_SIZE))
-		shub_err("no prox-stk33910-thresh, set as 0");
+	if (of_property_read_u16_array(np, "prox-stk3391x-thresh", data->prox_threshold, PROX_THRESH_SIZE))
+		shub_err("no prox-stk3391x-thresh, set as 0");
 
 	shub_info("thresh %u, %u", data->prox_threshold[PROX_THRESH_HIGH], data->prox_threshold[PROX_THRESH_LOW]);
 }
 
-int proximity_open_calibration_stk33910(void)
+int proximity_open_calibration_stk3391x(void)
 {
 	struct proximity_data *data = get_sensor(SENSOR_TYPE_PROXIMITY)->data;
 
@@ -58,24 +63,33 @@ int proximity_open_calibration_stk33910(void)
 	return 0;
 }
 
-void set_proximity_state_stk33910(struct proximity_data *data)
+void set_proximity_state_stk3391x(struct proximity_data *data)
 {
 	set_proximity_setting_mode();
 	if (!is_lcd_changed())
 		set_proximity_calibration();
 }
 
-struct proximity_chipset_funcs prox_stk33910_ops = {
-	.init_proximity_variable = init_proximity_stk33910_variable,
-	.parse_dt = parse_dt_proximity_stk33910,
-	.open_calibration_file = proximity_open_calibration_stk33910,
-	.sync_proximity_state = set_proximity_state_stk33910,
+struct proximity_chipset_funcs prox_stk3391x_funcs = {
+	.open_calibration_file = proximity_open_calibration_stk3391x,
+	.sync_proximity_state = set_proximity_state_stk3391x,
 };
 
-struct proximity_chipset_funcs *get_proximity_stk33910_function_pointer(char *name)
+void *get_proximity_stk3391x_chipset_funcs(void)
 {
-	if (strcmp(name, STK3X6X_NAME) != 0)
+	return &prox_stk3391x_funcs;
+}
+
+struct sensor_chipset_init_funcs prox_stk3391x_ops = {
+	.init = init_proximity_stk3391x,
+	.parse_dt = parse_dt_proximity_stk3391x,
+	.get_chipset_funcs = get_proximity_stk3391x_chipset_funcs,
+};
+
+struct sensor_chipset_init_funcs *get_proximity_stk3391x_function_pointer(char *name)
+{
+	if (strcmp(name, STK33910_NAME) != 0 && strcmp(name, STK33915_NAME) != 0)
 		return NULL;
 
-	return &prox_stk33910_ops;
+	return &prox_stk3391x_ops;
 }

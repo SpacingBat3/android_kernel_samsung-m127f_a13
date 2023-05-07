@@ -13,12 +13,9 @@
  *
  */
 
-#ifndef __SHUB_LIGHT_FACTORY_H_
-#define __SHUB_LIGHT_FACTORY_H_
+#ifndef __SHUB_AOIS_H_
+#define __SHUB_AOIS_H_
 
-#include <linux/device.h>
-#include <linux/types.h>
-
-struct device_attribute **get_light_tcs3701_dev_attrs(char *name);
-
+void init_shub_aois(void);
+void remove_shub_aois(void);
 #endif
