@@ -1,6 +1,25 @@
+# Original kernel ignores
 *.gen.S
 *.fw
 *.bin
 *.csp
 *.dsp
 ihex2fw
+# Include Samsung (prebuilt) firmware
+!tsp_novatek/nt36675_m12s_*ltps.bin
+!tsp_novatek/nt36525_[ma]12s_*.bin
+!tsp_novatek/nt36525_xcover5.bin
+!tsp_novatek/nt36525_xcover5_mp.bin
+!tsp_synaptics/td41[56]0_a12s_boe.bin
+!tsp_synaptics/td4150_a21s.bin
+!tsp_synaptics/td4375_a12s_boe.bin
+!tsp_himax/hx83112a_a21s.bin
+!sensorhub/shub_nacho_a[01][24]s.bin
+!sensorhub/shub_nacho_[am]1[234].bin
+!sensorhub/shub_nacho_xcover5.bin
+!sensorhub/shub_nacho_bl.bin
+!sensorhub/shub_nacho_gthwifi.bin
+!npu/NPU.bin
+!abov/a96t356_a12_*.bin
+!abov/a96t356_m12s.bin
+!abov/a96t356_m12s_*.bin
