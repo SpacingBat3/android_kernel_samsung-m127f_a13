@@ -49,6 +49,8 @@ fi
 export PLATFORM_VERSION=13
 export ANDROID_MAJOR_VERSION=t
 export ARCH=arm64
+export KCFLAGS="-mtune=cortex-a55"
+export KCPPFLAGS="$KCFLAGS"
 
 # GCC toolchain
 export CROSS_COMPILE="$ANDROID_TOOLCHAINS/aarch64-linux-android-4.9/bin/aarch64-linux-android-"
