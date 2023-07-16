@@ -30,7 +30,7 @@ list_variants()
 	is_variant && echo '<default>'
 	
 	printf '%s\n' "$ROOTDIR"/arch/arm64/configs/exynos850-m12nsxx-*_defconfig | \
-		sed 's~.*exynos850-m12nsxx-\([a-z-]*\)_defconfig$~\1~g'
+		sed 's~.*exynos850-m12nsxx-\([a-z0-9-]*\)_defconfig$~\1~g'
 }
 
 makecmd()
@@ -51,6 +51,10 @@ export ANDROID_MAJOR_VERSION=t
 export ARCH=arm64
 export KCFLAGS="-mtune=cortex-a55"
 export KCPPFLAGS="$KCFLAGS"
+
+export KBUILD_BUILD_USER=linux
+export KBUILD_BUILD_HOST=SM_M127F
+export KBUILD_BUILD_TIMESTAMP="$(date -Ru${SOURCE_DATE_EPOCH:+d @$SOURCE_DATE_EPOCH})"
 
 # GCC toolchain
 export CROSS_COMPILE="$ANDROID_TOOLCHAINS/aarch64-linux-android-4.9/bin/aarch64-linux-android-"
@@ -84,7 +88,7 @@ DEFCONFIG="exynos850-m12nsxx${separator}${1}_defconfig"
 
 echo
 echo "Configuring with defconfig: $DEFCONFIG"
-printf "===========================%${#DEFCONFIG}s\n" | tr " " "="
+printf "============================%${#DEFCONFIG}s\n" | tr " " "="
 makecmd "$DEFCONFIG"
 echo
 echo Building the kernel:
