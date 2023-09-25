@@ -1,4 +1,4 @@
 [submodule "KernelSU"]
 	path = KernelSU
-	url = https://github.com/tiann/KernelSU
-	branch = v0.6.7
+	url = https://github.com/SpacingBat3/SM_M127F_KernelSU
+	branch = m12-stable
